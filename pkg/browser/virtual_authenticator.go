@@ -14,7 +14,6 @@ import (
 	"github.com/chromedp/chromedp"
 )
 
-// VirtualAuthenticator manages a CDP-based virtual FIDO2 authenticator.
 type VirtualAuthenticator struct {
 	allocatorCancel context.CancelFunc
 	ctxCancel       context.CancelFunc
@@ -23,18 +22,15 @@ type VirtualAuthenticator struct {
 	ctapAuth        *ctap.Authenticator
 }
 
-// New creates and configures a new virtual authenticator in a new Chrome instance.
 func New(headless bool) (*VirtualAuthenticator, error) {
 	var opts []chromedp.ExecAllocatorOption
 	
 	if headless {
-		// Headless mode - use default options plus headless
 		opts = append(chromedp.DefaultExecAllocatorOptions[:],
 			chromedp.Headless,
 			chromedp.Flag("remote-debugging-port", "9222"),
 		)
 	} else {
-		// Visible mode - start from scratch to avoid any headless defaults
 		opts = []chromedp.ExecAllocatorOption{
 			chromedp.NoSandbox,
 			chromedp.Flag("remote-debugging-port", "9222"),
@@ -54,10 +50,8 @@ func New(headless bool) (*VirtualAuthenticator, error) {
 	allocatorCtx, allocatorCancel := chromedp.NewExecAllocator(context.Background(), opts...)
 	ctx, ctxCancel := chromedp.NewContext(allocatorCtx)
 
-	// Create our CTAP2 authenticator
 	ctapAuth := ctap.NewAuthenticator()
 
-	// Create the virtual authenticator
 	var authenticatorID webauthn.AuthenticatorID
 	options := &webauthn.VirtualAuthenticatorOptions{
 		Protocol:                    webauthn.AuthenticatorProtocolCtap2,
@@ -68,7 +62,6 @@ func New(headless bool) (*VirtualAuthenticator, error) {
 		IsUserVerified:              true,
 	}
 
-	// Enable WebAuthn and create authenticator
 	if err := chromedp.Run(ctx, webauthn.Enable().WithEnableUI(true)); err != nil {
 		chromedp.Cancel(ctx)
 		chromedp.Cancel(allocatorCtx)
@@ -88,7 +81,6 @@ func New(headless bool) (*VirtualAuthenticator, error) {
 		return nil, fmt.Errorf("failed to create virtual authenticator: %w", err)
 	}
 
-	// Configure the authenticator
 	if err := chromedp.Run(ctx,
 		webauthn.SetAutomaticPresenceSimulation(authenticatorID, true),
 		webauthn.SetUserVerified(authenticatorID, true),
@@ -107,20 +99,17 @@ func New(headless bool) (*VirtualAuthenticator, error) {
 	}, nil
 }
 
-// PreloadCredential creates a credential for the specified RPID and injects it
 func (va *VirtualAuthenticator) PreloadCredential(rpid string) error {
-	// Generate a key pair for this RPID
 	privateKey, err := ctap.GenerateKey()
 	if err != nil {
 		return fmt.Errorf("failed to generate key: %w", err)
 	}
 
-	// Create credential with predictable ID for debugging
+
 	credID := make([]byte, 16)
-	copy(credID, []byte("testcred12345678")[:16]) // Exactly 16 bytes
+	copy(credID, []byte("testcred12345678")[:16])
 	userID := []byte("testuser12345678")
 
-	// Store in our CTAP authenticator with realistic sign count
 	initialSignCount := va.generateRealisticSignCount()
 	cred := &ctap.Credential{
 		ID:         credID,
@@ -134,13 +123,13 @@ func (va *VirtualAuthenticator) PreloadCredential(rpid string) error {
 	
 	log.Printf("[+] sign counter spoofing: %d (bypasses the zero sign detection)", initialSignCount)
 
-	// Convert private key to PKCS#8 for Chrome
+
 	pkcs8Key, err := ctap.MarshalPKCS8PrivateKey(privateKey)
 	if err != nil {
 		return fmt.Errorf("failed to marshal private key: %w", err)
 	}
 
-	// Inject into Chrome's virtual authenticator with same realistic sign count
+
 	credential := &webauthn.Credential{
 		CredentialID:         base64.StdEncoding.EncodeToString(credID),
 		PrivateKey:           base64.StdEncoding.EncodeToString(pkcs8Key),
@@ -159,13 +148,11 @@ func (va *VirtualAuthenticator) PreloadCredential(rpid string) error {
 	return nil
 }
 
-// Navigate tells the browser to navigate to a specific URL.
 func (va *VirtualAuthenticator) Navigate(url string) error {
 	if err := chromedp.Run(va.ctx, chromedp.Navigate(url)); err != nil {
 		return fmt.Errorf("failed to navigate to %s: %w", url, err)
 	}
 	
-	// Wait for page to load
 	time.Sleep(2 * time.Second)
 	
 	return nil
