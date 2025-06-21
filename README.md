@@ -100,7 +100,7 @@ This is an educational implementation. If you find issues or have improvements, 
 ## Acknowledgments
 
 - **[@vmfunc](https://twitter.com/vmfunc)** for the original groundbreaking research
-- **[nullpt.rs](https://www.nullpt.rs/forging-passkeys)** for the comprehensive technical writeup
+- **[nullpt.rs](https://www.nullpt.rs/forging-passkeys)** for the comprehensive technical writeup (authored by vmfunc)
 - The WebAuthn and FIDO Alliance communities for their work on authentication standards
 
 ## License
