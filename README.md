@@ -1,4 +1,4 @@
-# Forging Passkeys - Educational PoC
+# forging passkeys - go
 
 A Go implementation of the "Forging Passkeys" research demonstrating virtual FIDO2/WebAuthn authenticators for educational and authorized security testing purposes.
 
